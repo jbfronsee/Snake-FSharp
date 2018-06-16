@@ -1,6 +1,5 @@
 ﻿namespace Snake
 open System.Reflection
-open System.Runtime.CompilerServices
 
 [<assembly: AssemblyTitle("Snake")>]
 [<assembly: AssemblyDescription("")>]

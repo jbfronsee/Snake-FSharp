@@ -3,10 +3,13 @@
 open Gtk
 open MainWindow
 
-let mutable keyIn = Gdk.Key.Right
-let mutable dirtyCanvas = Window.Canvas.ExposeEvent |> Observable.subscribe (fun args -> ())
+// This is just to dispose the previous event subscription instead of continually subscribing
+let mutable dirtyCanvas = GameWindow.Canvas.ExposeEvent |> Observable.subscribe (fun args -> ())
 
-let OnKeyPress (args:KeyPressEventArgs) = 
+// Enables readInput() to get user input instead of subscribing to events
+let mutable keyIn = Gdk.Key.Right
+
+let onKeyPress (args:KeyPressEventArgs) = 
     printfn "%A" keyIn
     match args.Event.Key with
     | Gdk.Key.p | Gdk.Key.P ->
@@ -21,26 +24,34 @@ let OnKeyPress (args:KeyPressEventArgs) =
         keyIn <- Gdk.Key.Right
     | _ -> ()
 
-let ReadInput() = keyIn
+GameWindow.EventBox.KeyPressEvent |> Observable.subscribe onKeyPress |> ignore
 
-let Initialize() =
-    do Window.EventBox.KeyPressEvent |> Observable.subscribe OnKeyPress |> ignore
+let readInput() = keyIn
 
-let OnDraw (state:State.Board) (args:Gtk.ExposeEventArgs) = 
-    use canvas = Gdk.CairoHelper.Create(args.Event.Window)
-    do canvas.SetSourceColor(Cairo.Color(1.0, 0.0, 0.0))
+let onDraw (state:State.Board) (args:Gtk.ExposeEventArgs) = 
+    use context = Gdk.CairoHelper.Create(args.Event.Window)
+    do context.SetSourceColor(Cairo.Color(1.0, 0.0, 0.0))
+    do context.Save()
+    do context.MoveTo(700.0,700.0)
+    do context.SetFontSize(20.0)
+    do context.ShowText("Score: " + state.score.ToString())
+    do context.Restore()
+
     let unwrap (State.Body(x,y)) = (x,y)
     let (forward, reverse) = unwrap state.player.body
-    do forward |> List.iter (fun pos -> canvas.Rectangle(pos.x, pos.y, 10.0, 10.0))
-    do reverse |> List.iter (fun pos -> canvas.Rectangle(pos.x, pos.y, 10.0, 10.0))
-    do canvas.Rectangle(state.prize.x, state.prize.y, 10.0, 10.0)
-    do canvas.Fill()
-    do canvas.GetTarget().Dispose()
 
-let Draw (state:State.Board) =
+    do forward |> List.iter (fun pos -> context.Rectangle(float(pos.x), float(pos.y), 10.0, 10.0))
+    do reverse |> List.iter (fun pos -> context.Rectangle(float(pos.x), float(pos.y), 10.0, 10.0))
+    do context.Rectangle(float(state.prize.x), float(state.prize.y), 10.0, 10.0)
+
+    do context.Fill()
+    // TODO: Anything else needs to be disposed?
+    do context.GetTarget().Dispose()
+
+let draw (state:State.Board) =
     do dirtyCanvas.Dispose()
-    let OnDraw' = OnDraw state
-    do dirtyCanvas <- Window.Canvas.ExposeEvent |> Observable.subscribe OnDraw'
-    do Window.Canvas.QueueDraw() |> ignore
+    let onDraw' = onDraw state
+    do dirtyCanvas <- GameWindow.Canvas.ExposeEvent |> Observable.subscribe onDraw'
+    do GameWindow.Canvas.QueueDraw() |> ignore
 
 

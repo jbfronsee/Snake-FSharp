@@ -1,6 +1,6 @@
 ﻿module Snake.State
 
-let rand = System.Random()
+let rand = System.Random().NextDouble
 
 type Direction = Up | Down | Left | Right
 
@@ -14,19 +14,17 @@ let opposite dir =
 let areOpposite d1 d2 =
     d1 = (opposite d2)
 
-type Position = { x:float; y:float }
+type Position = { x:int; y:int }
 
 let randomPos xHigh yHigh =
     { 
-        x = rand.NextDouble() * xHigh;
-        y = rand.NextDouble() * yHigh;
+        x = int(rand() * xHigh);
+        y = int(rand() * yHigh);
     }
-
-type Speed = Speed of float
 
 type Body = Body of Position list * Position list
 
-let StartingBody = Body([],[{x=0.0;y=0.0};{x=10.0;y=0.0};{x=20.0;y=0.0};{x=30.0;y=0.0};{x=40.0;y=0.0};{x=50.0;y=0.0};{x=60.0;y=0.0};{x=70.0;y=0.0};{x=80.0;y=0.0}])
+let startingBody = Body([],[{x=0;y=0};{x=10;y=0};{x=20;y=0};{x=30;y=0};{x=40;y=0};{x=50;y=0};{x=60;y=0};{x=70;y=0};{x=80;y=0}])
 
 let add piece body =
     match body with
@@ -47,32 +45,35 @@ type Player =
         dir : Direction;
         body : Body;
         head : Position;
-        speed : float;
+        speed : int;
     }
 
 type Board =
     {
-        player : Player
-        prize : Position
-        pause: bool;
+        player : Player;
+        prize : Position;
+        pause : bool;
+        score : int;
     }
 
 let start = {
 
     player = 
         {
-        body = StartingBody;
-        dir = Right; 
-        head={ x = 80.0; y = 0.0}; 
-        speed = 10.01;
+            body = startingBody;
+            dir = Right; 
+            head = { x = 80; y = 0}; 
+            speed = 10;
         };
 
-    pause=false;
-
-    prize=randomPos 800.0 800.0;
+    // TODO: make an initialize function for this so it can be different on death
+    // TODO: constants for randomPos
+    prize = randomPos 790.0 70.0;
+    pause = false;
+    score = 0;
 }
 
-let NextMove player =
+let nextMove player =
     match player with
     | { dir = Up } ->
         { player.head with y = player.head.y - player.speed }
@@ -83,8 +84,8 @@ let NextMove player =
     | { dir = Right }  ->
         { player.head with x = player.head.x + player.speed }
 
-let MovePlayer player =
-    let newPos = NextMove player
+let movePlayer player =
+    let newPos = nextMove player
     let newBody = player.body |> remove |> add newPos
-    let newState = { player with head = newPos; body=newBody }
-    newState
+    let newPlayer = { player with head = newPos; body=newBody }
+    newPlayer
