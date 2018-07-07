@@ -40,9 +40,9 @@ let onDraw (state:State.Board) (args:Gtk.ExposeEventArgs) =
     let unwrap (State.Body(x,y)) = (x,y)
     let (forward, reverse) = unwrap state.player.body
 
-    do forward |> List.iter (fun pos -> context.Rectangle(float(pos.x), float(pos.y), 10.0, 10.0))
-    do reverse |> List.iter (fun pos -> context.Rectangle(float(pos.x), float(pos.y), 10.0, 10.0))
-    do context.Rectangle(float(state.prize.x), float(state.prize.y), 10.0, 10.0)
+    do forward |> List.iter (fun pos -> context.Rectangle(float(pos.x), float(pos.y), float(State.plSize), float(State.plSize)))
+    do reverse |> List.iter (fun pos -> context.Rectangle(float(pos.x), float(pos.y), float(State.plSize), float(State.plSize)))
+    do context.Rectangle(float(state.prize.x), float(state.prize.y), float(State.plSize), float(State.plSize))
 
     do context.Fill()
     // TODO: Anything else needs to be disposed?

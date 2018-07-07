@@ -3,6 +3,9 @@
 open System
 open Gtk;
 
+let wWidth = 800
+let wHeight = 800
+
 type SnakeWindow() as this =
     inherit Window("Snake")
 
@@ -12,7 +15,7 @@ type SnakeWindow() as this =
     do myEventBox.Add(myCanvas)
     do this.Add(myEventBox)
 
-    do this.SetDefaultSize(800,800)
+    do this.SetDefaultSize(wWidth,wHeight)
     // TODO: Possibly remove this
     do this.Modal <- true
     do this.ShowAll()

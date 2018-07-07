@@ -1,16 +1,19 @@
 ﻿module Snake.Game
 
 let detectCollision (pos1:State.Position) (pos2:State.Position) =
-    not (pos1.y >= pos2.y + 10 || 
-         pos1.x + 10 <= pos2.x || 
-         pos1.y + 10 <= pos2.y || 
-         pos1.x >= pos2.x + 10)
+    not (pos1.y >= pos2.y + State.plSize || 
+         pos1.x + State.plSize <= pos2.x || 
+         pos1.y + State.plSize <= pos2.y || 
+         pos1.x >= pos2.x + State.plSize)
 
 let acquiredPrize (newPos:State.Position) (state:State.Board) =
     detectCollision newPos state.prize
 
 let outOfBounds (player:State.Player) =
-    player.head.y > 800 || player.head.y < 0 || player.head.x > 800 || player.head.x < 0
+    (player.head.y > (MainWindow.wHeight - State.plSize)) || 
+    (player.head.y < 0) || 
+    (player.head.x > (MainWindow.wWidth - State.plSize)) || 
+    (player.head.x < 0)
 
 let isDead newPos (state:State.Board) =
     let unwrap (State.Body(x,y)) = (x,y)
@@ -27,7 +30,8 @@ let isDead newPos (state:State.Board) =
 let deadSnake newPos (state:State.Board) =
     match state |> isDead newPos with
     | true ->
-        State.start
+        { State.start 
+            with prize=(State.randomPos (float(MainWindow.wWidth) - float(State.plSize)) (float(MainWindow.wHeight) - float(State.plSize))); }
     | false ->
         let newPlayer = State.movePlayer state.player
         let newState = { state with player=newPlayer }
@@ -61,7 +65,7 @@ let Update (state:State.Board) =
         match state |> acquiredPrize newPos with
         | true ->
             let newPlayer = { state.player with head=newPos; body=(State.add newPos state.player.body) }
-            let newPrize = State.randomPos 790.0 790.0
+            let newPrize = State.randomPos (float(MainWindow.wWidth) - float(State.plSize)) (float(MainWindow.wHeight) - float(State.plSize))
             let newState = { state with player=newPlayer; prize=newPrize; score=state.score+1 }
             newState
         | false ->

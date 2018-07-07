@@ -24,7 +24,10 @@ let randomPos xHigh yHigh =
 
 type Body = Body of Position list * Position list
 
-let startingBody = Body([],[{x=0;y=0};{x=10;y=0};{x=20;y=0};{x=30;y=0};{x=40;y=0};{x=50;y=0};{x=60;y=0};{x=70;y=0};{x=80;y=0}])
+let plSize = 20;
+
+let startingBody = Body([],[{x=0;y=0};{x=1*plSize;y=0};{x=2*plSize;y=0};{x=3*plSize;y=0};
+                            {x=4*plSize;y=0};{x=5*plSize;y=0};{x=6*plSize;y=0};{x=7*plSize;y=0};{x=8*plSize;y=0}])
 
 let add piece body =
     match body with
@@ -45,7 +48,7 @@ type Player =
         dir : Direction;
         body : Body;
         head : Position;
-        speed : int;
+        size : int;
     }
 
 type Board =
@@ -62,13 +65,11 @@ let start = {
         {
             body = startingBody;
             dir = Right; 
-            head = { x = 80; y = 0}; 
-            speed = 10;
+            head = { x = 8*plSize; y = 0}; 
+            size = plSize;
         };
 
-    // TODO: make an initialize function for this so it can be different on death
-    // TODO: constants for randomPos
-    prize = randomPos 790.0 70.0;
+    prize = randomPos (float(MainWindow.wWidth) - float(plSize)) (float(MainWindow.wHeight) - float(plSize));
     pause = false;
     score = 0;
 }
@@ -76,13 +77,13 @@ let start = {
 let nextMove player =
     match player with
     | { dir = Up } ->
-        { player.head with y = player.head.y - player.speed }
+        { player.head with y = player.head.y - player.size }
     | { dir = Down } -> 
-        { player.head with y = player.head.y + player.speed }
+        { player.head with y = player.head.y + player.size }
     | { dir = Left }  ->
-        { player.head with x = player.head.x - player.speed }
+        { player.head with x = player.head.x - player.size }
     | { dir = Right }  ->
-        { player.head with x = player.head.x + player.speed }
+        { player.head with x = player.head.x + player.size }
 
 let movePlayer player =
     let newPos = nextMove player
