@@ -1,73 +1,219 @@
 ﻿module Snake.Game
 
-let detectCollision (pos1:State.Position) (pos2:State.Position) =
-    not (pos1.y >= pos2.y + State.plSize || 
-         pos1.x + State.plSize <= pos2.x || 
-         pos1.y + State.plSize <= pos2.y || 
-         pos1.x >= pos2.x + State.plSize)
+open System
 
-let acquiredPrize (newPos:State.Position) (state:State.Board) =
-    detectCollision newPos state.prize
+let rand = System.Random().NextDouble
 
-let outOfBounds (player:State.Player) =
-    (player.head.y > (MainWindow.wHeight - State.plSize)) || 
+type Direction = Up | Down | Left | Right
+
+let opposite dir =
+    match dir with
+    | Up -> Down
+    | Down -> Up
+    | Left -> Right
+    | Right -> Left
+
+let areOpposite d1 d2 =
+    d1 = (opposite d2)
+
+type Position = { x:int; y:int }
+
+let randomPos xHigh yHigh =
+    { 
+        x = int(rand() * xHigh);
+        y = int(rand() * yHigh);
+    }
+
+// Body is structured like a queue
+type Body = Body of Position list * Position list
+
+// Add to back of queue
+let add piece body =
+    match body with
+    | Body(forward, reverse) -> Body(piece::forward, reverse)
+
+// Remove from front of queue
+let remove body =
+    match body with
+    | Body([],[]) ->
+        Body([],[]) //TODO: change maybe
+    | Body(forward, r::reverse) ->
+        Body(forward,reverse)
+    | Body(forward, []) ->
+        let reverse = forward |> List.rev
+        Body([], reverse |> List.tail)
+
+let plSize = 20;
+
+// Queue is actually the reverse of the snake's body the tail is the front
+let startingBody = Body([],[{x=0;y=0};{x=1*plSize;y=0};{x=2*plSize;y=0};{x=3*plSize;y=0};
+                            {x=4*plSize;y=0};{x=5*plSize;y=0};{x=6*plSize;y=0};{x=7*plSize;y=0};{x=8*plSize;y=0}])
+
+type Player = 
+    { 
+        dir : Direction;
+        body : Body;
+        head : Position;
+        size : int;
+    }
+
+type Score =
+    {
+        present : int;
+        high : int;
+    }
+  
+type Board =
+    {
+        player : Player;
+        prize : Position;
+        score : Score;
+    }
+
+type RunningData = RunningData of Board
+
+type PausedData = PausedData of Board
+
+type State = 
+    | Running of RunningData
+    | Paused of PausedData 
+    | Quit
+
+let switch state =
+    match state with
+    | Running state ->
+        let (RunningData board) = state
+        Paused (PausedData board)
+    | Paused state ->
+        let (PausedData board) = state
+        Running (RunningData board)
+    | Quit ->
+        Quit
+
+let startingBoard = 
+    {
+
+        player = 
+            {
+                body = startingBody;
+                dir = Right; 
+                head = 
+                    { 
+                        x = 8*plSize; 
+                        y = 0;
+                    }; 
+                size = plSize;
+            };
+
+        prize = randomPos (float(MainWindow.wWidth) - float(plSize)) (float(MainWindow.wHeight) - float(plSize));
+        score = 
+            { 
+                present = 0; 
+                high = 0;
+            };
+    }
+
+let start =
+    try
+        let highScore = System.IO.File.ReadLines "snake.txt" |> Seq.head |> int
+        Running ( RunningData { startingBoard with score={ startingBoard.score with high = highScore; } } )
+    with
+        | _ ->
+            Running ( RunningData startingBoard )
+
+
+let nextMove player =
+    match player with
+    | { dir = Up } ->
+        { player.head with y = player.head.y - player.size }
+    | { dir = Down } -> 
+        { player.head with y = player.head.y + player.size }
+    | { dir = Left }  ->
+        { player.head with x = player.head.x - player.size }
+    | { dir = Right }  ->
+        { player.head with x = player.head.x + player.size }
+
+let movePlayer player =
+    let newPos = nextMove player
+    let newBody = player.body |> remove |> add newPos
+    let newPlayer = { player with head = newPos; body=newBody }
+    newPlayer
+
+let detectCollision pos1 pos2 =
+    not (pos1.y >= pos2.y + plSize || 
+         pos1.x + plSize <= pos2.x || 
+         pos1.y + plSize <= pos2.y || 
+         pos1.x >= pos2.x + plSize)
+
+let acquiredPrize newPos board =
+    detectCollision newPos board.prize
+
+let outOfBounds player =
+    (player.head.y > (MainWindow.wHeight - plSize)) || 
     (player.head.y < 0) || 
-    (player.head.x > (MainWindow.wWidth - State.plSize)) || 
+    (player.head.x > (MainWindow.wWidth - plSize)) || 
     (player.head.x < 0)
 
-let isDead newPos (state:State.Board) =
-    let unwrap (State.Body(x,y)) = (x,y)
+let isDead newPos board =
+    let unwrap (Body(x,y)) = (x,y)
 
-    match outOfBounds state.player with
+    match outOfBounds board.player with
     | true ->
         true
     | false ->
-        let (forward, reverse) = unwrap state.player.body
-        let forwardCollision = forward |> List.exists (fun pos -> detectCollision newPos pos)
-        let reverseCollision = reverse |> List.exists (fun pos -> detectCollision newPos pos)
+        let (forward, reverse) = unwrap board.player.body
+        let forwardCollision = forward |> List.exists (fun pos -> detectCollision pos newPos)
+        let reverseCollision = reverse |> List.exists (fun pos -> detectCollision pos newPos)
         forwardCollision || reverseCollision
 
-let deadSnake newPos (state:State.Board) =
-    match state |> isDead newPos with
+let newHighScore score =
+        match (score.present > score.high) with
+        | true ->
+            score.present
+        | false ->
+            score.high
+
+let deadSnake newPos board =
+    match board |> isDead newPos with
     | true ->
-        { State.start 
-            with prize=(State.randomPos (float(MainWindow.wWidth) - float(State.plSize)) (float(MainWindow.wHeight) - float(State.plSize))); }
+        { startingBoard 
+            with prize=(randomPos (float(MainWindow.wWidth) - float(plSize)) (float(MainWindow.wHeight) - float(plSize)));
+                 score={ startingBoard.score with high = newHighScore board.score } }
     | false ->
-        let newPlayer = State.movePlayer state.player
-        let newState = { state with player=newPlayer }
+        let newPlayer = movePlayer board.player
+        let newState = { board with player=newPlayer }
         newState
 
-let changeDir newDir (state:State.Board) =
-    match (state.pause || (State.areOpposite state.player.dir newDir)) with
-    | true -> state
-    | false -> { state with player={ state.player with dir=newDir } }
-
-let ProcessInput keyPress (state:State.Board) =
-    match keyPress with
-    | Gdk.Key.p | Gdk.Key.P ->
-        { state with pause = true }
-    | Gdk.Key.Up ->
-        { state with pause = false } |> changeDir State.Up
-    | Gdk.Key.Down ->
-        { state with pause = false } |> changeDir State.Down
-    | Gdk.Key.Left ->
-        { state with pause = false } |> changeDir State.Left
-    | Gdk.Key.Right -> 
-        { state with pause = false } |> changeDir State.Right
-    | _ -> state
-
-let Update (state:State.Board) =
-    match state.pause with
-    | true ->
-        state
-    | false ->
-        let newPos = State.nextMove state.player
-        match state |> acquiredPrize newPos with
+let changeDir newDir state =
+    match state with
+    | Running state ->
+        let (RunningData board) = state
+        match (areOpposite board.player.dir newDir) with
         | true ->
-            let newPlayer = { state.player with head=newPos; body=(State.add newPos state.player.body) }
-            let newPrize = State.randomPos (float(MainWindow.wWidth) - float(State.plSize)) (float(MainWindow.wHeight) - float(State.plSize))
-            let newState = { state with player=newPlayer; prize=newPrize; score=state.score+1 }
-            newState
+            Running state
         | false ->
-            let newState = state |> deadSnake newPos
-            newState
+            let newBoard = { board with player={ board.player with dir=newDir } }
+            Running (RunningData newBoard)
+    | Paused state ->
+        Paused state
+    | Quit ->
+        Quit
+
+let Update state =
+    match state with
+    | Paused state ->
+        Paused state
+    | Running state ->
+        let (RunningData board) = state
+        let newPos = nextMove board.player
+        match board |> acquiredPrize newPos with
+        | true ->
+            let newPlayer = { board.player with head=newPos; body=(add newPos board.player.body) }
+            let newPrize = randomPos ( float(MainWindow.wWidth) - float(plSize) ) ( float(MainWindow.wHeight) - float(plSize) )
+            let newState = { board with player=newPlayer; prize=newPrize; score = { board.score with present=board.score.present+1 }; }
+            Running ( RunningData newState )
+        | false ->
+            let newState = board |> deadSnake newPos
+            Running ( RunningData newState )
+    | Quit ->
+        Quit
