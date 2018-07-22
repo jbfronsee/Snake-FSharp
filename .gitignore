@@ -1,0 +1,9 @@
+*.exe
+*.dll
+*.pdb
+*.png
+*.swp
+.vs/
+bin/
+obj/
+packages/

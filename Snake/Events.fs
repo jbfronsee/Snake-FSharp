@@ -30,7 +30,7 @@ let onKeyPress (args:KeyPressEventArgs) =
         input <- Pressed Gdk.Key.Right
     | _ -> ()
 
-GameWindow.EventBox.KeyPressEvent |> Observable.subscribe onKeyPress |> ignore
+do GameWindow.EventBox.KeyPressEvent |> Observable.subscribe onKeyPress |> ignore
 
 let readInput() = 
     match input with
@@ -41,7 +41,10 @@ let readInput() =
     | Released ->
         Released
 
-let ProcessInput keyPress (state:Game.State)=
+let ProcessInput keyPress state =
+    let saveHighScore (board : Game.Board) =
+        do IO.File.WriteAllLines("snake.txt", [ (Game.newHighScore board.score).ToString() ] |> List.toSeq)
+
     match keyPress with
     | Pressed key ->
         match key with
@@ -51,10 +54,10 @@ let ProcessInput keyPress (state:Game.State)=
             match state with
             | Game.Running data ->
                 let (Game.RunningData board) = data
-                do IO.File.WriteAllLines("snake.txt", [(Game.newHighScore board.score).ToString()] |> List.toSeq )
+                saveHighScore board
             | Game.Paused data ->
                 let (Game.PausedData board) = data
-                do IO.File.WriteAllLines("snake.txt", [(Game.newHighScore board.score).ToString()] |> List.toSeq )
+                saveHighScore board
             | Game.Quit ->
                 ()
 
@@ -75,7 +78,7 @@ let onDraw (state:Game.Board) (args:Gtk.ExposeEventArgs) =
     use context = Gdk.CairoHelper.Create(args.Event.Window)
     do context.SetSourceColor(Cairo.Color(1.0, 0.0, 0.0))
     do context.Save()
-    do context.MoveTo(600.0,700.0)
+    do context.MoveTo(600.0,750.0)
     do context.SetFontSize(20.0)
     do context.ShowText("Score: " + state.score.present.ToString() + " High: " + state.score.high.ToString())
     do context.Restore()
@@ -93,22 +96,23 @@ let onDraw (state:Game.Board) (args:Gtk.ExposeEventArgs) =
     do context.Rectangle(float(state.prize.x), float(state.prize.y), float(Game.plSize), float(Game.plSize))
 
     do context.Fill()
-    // TODO: Anything else needs to be disposed?
     do context.GetTarget().Dispose()
+    do context.GetSource().Dispose()
 
-let draw (state:Game.State) =
+let draw state =
+    let drawBoard board =
+        let onDraw' = onDraw board
+        do dirtyCanvas <- GameWindow.Canvas.ExposeEvent |> Observable.subscribe onDraw'
+        do GameWindow.Canvas.QueueDraw() |> ignore
+
     do dirtyCanvas.Dispose()
     match state with 
-    | Game.Running state ->
-        let (Game.RunningData board) = state
-        let onDraw' = onDraw board
-        do dirtyCanvas <- GameWindow.Canvas.ExposeEvent |> Observable.subscribe onDraw'
-        do GameWindow.Canvas.QueueDraw() |> ignore
-    | Game.Paused state ->
-        let (Game.PausedData board) = state
-        let onDraw' = onDraw board
-        do dirtyCanvas <- GameWindow.Canvas.ExposeEvent |> Observable.subscribe onDraw'
-        do GameWindow.Canvas.QueueDraw() |> ignore
+    | Game.Running data ->
+        let (Game.RunningData board) = data
+        drawBoard board
+    | Game.Paused data ->
+        let (Game.PausedData board) = data
+        drawBoard board
     | Game.Quit ->
         // Do nothing.
         ()

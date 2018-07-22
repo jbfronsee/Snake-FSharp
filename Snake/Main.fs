@@ -13,12 +13,12 @@ let rec run state =
         let newState = 
             ( state |> Events.ProcessInput ( Events.readInput() ) ) |> Game.Update
         match newState with
+        | Game.Paused _ | Game.Running _ ->
+            do newState |> Events.draw |> ignore
+            newState |> run
         | Game.Quit -> 
             // Exit
             ()
-        | Game.Paused _ | Game.Running _->
-            do newState |> Events.draw |> ignore
-            newState |> run
 
 [<EntryPoint>]
 let main(args) = 

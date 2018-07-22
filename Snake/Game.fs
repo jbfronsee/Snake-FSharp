@@ -1,7 +1,5 @@
 ﻿module Snake.Game
 
-open System
-
 let rand = System.Random().NextDouble
 
 type Direction = Up | Down | Left | Right
@@ -16,27 +14,36 @@ let opposite dir =
 let areOpposite d1 d2 =
     d1 = (opposite d2)
 
-type Position = { x:int; y:int }
+type Position = { x:int; y:int; }
 
+/// <summary>
+/// Procedure has random results.
+/// </summary>
 let randomPos xHigh yHigh =
     { 
         x = int(rand() * xHigh);
         y = int(rand() * yHigh);
     }
 
-// Body is structured like a queue
+/// <summary>
+/// Body is structured like a queue.
+/// </summary>
 type Body = Body of Position list * Position list
 
-// Add to back of queue
+/// <summary>
+/// Add to back of queue.
+/// </summary>
 let add piece body =
     match body with
     | Body(forward, reverse) -> Body(piece::forward, reverse)
 
-// Remove from front of queue
+/// <summary>
+/// Remove from front of queue.
+/// </summary>
 let remove body =
     match body with
     | Body([],[]) ->
-        Body([],[]) //TODO: change maybe
+        Body([],[])
     | Body(forward, r::reverse) ->
         Body(forward,reverse)
     | Body(forward, []) ->
@@ -45,10 +52,12 @@ let remove body =
 
 let plSize = 20;
 
-// Queue is actually the reverse of the snake's body the tail is the front
+/// <summary>
+/// Queue is actually the reverse of the snake's body the tail is the front
+/// </summary>
 let startingBody = Body([],[{x=0;y=0};{x=1*plSize;y=0};{x=2*plSize;y=0};{x=3*plSize;y=0};
                             {x=4*plSize;y=0};{x=5*plSize;y=0};{x=6*plSize;y=0};{x=7*plSize;y=0};{x=8*plSize;y=0}])
-
+                                                       
 type Player = 
     { 
         dir : Direction;
@@ -113,6 +122,9 @@ let startingBoard =
             };
     }
 
+/// <summary>
+/// Reads from file setting highScore to file input
+/// </summary>
 let start =
     try
         let highScore = System.IO.File.ReadLines "snake.txt" |> Seq.head |> int
