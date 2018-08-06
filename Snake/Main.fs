@@ -3,6 +3,15 @@
 open Gtk
 open MainWindow
 
+let rand = System.Random().NextDouble
+
+let readHighScore() =
+    try
+        let highScore = System.IO.File.ReadLines "snake.txt" |> Seq.head |> int
+        Some(highScore)
+    with _ ->
+        None 
+
 let rec run state =
     match Application.EventsPending() with
     | true ->
@@ -10,8 +19,10 @@ let rec run state =
         state |> run
     | false ->
         do System.Threading.Thread.Sleep(50) |> ignore
+
+        let input = Events.readInput()
         let newState = 
-            ( state |> Events.ProcessInput ( Events.readInput() ) ) |> Game.Update
+            ( state |> Events.ProcessInput input ) |> Game.Update rand
         match newState with
         | Game.Paused _ | Game.Running _ ->
             do newState |> Events.draw |> ignore
@@ -22,9 +33,16 @@ let rec run state =
 
 [<EntryPoint>]
 let main(args) = 
+    let high = 
+        match readHighScore() with
+        | Some x ->
+            x
+        | None ->
+            0
+
     Application.Init()
 
     GameWindow.Canvas.QueueDraw()
     GameWindow.Show();
-    Game.start |> run
+    rand |> Game.start high |> run
     0

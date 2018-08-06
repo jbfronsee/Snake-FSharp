@@ -1,6 +1,6 @@
 ﻿module Snake.Game
 
-let rand = System.Random().NextDouble
+//let rand = System.Random().NextDouble
 
 type Direction = Up | Down | Left | Right
 
@@ -17,9 +17,9 @@ let areOpposite d1 d2 =
 type Position = { x:int; y:int; }
 
 /// <summary>
-/// Procedure has random results.
+/// Converts a random number into a position.
 /// </summary>
-let randomPos xHigh yHigh =
+let randomPos xHigh yHigh rand =
     { 
         x = int(rand() * xHigh);
         y = int(rand() * yHigh);
@@ -99,7 +99,8 @@ let switch state =
     | Quit ->
         Quit
 
-let startingBoard = 
+
+let startingBoard highScore rand = 
     {
 
         player = 
@@ -114,25 +115,17 @@ let startingBoard =
                 size = plSize;
             };
 
-        prize = randomPos (float(MainWindow.wWidth) - float(plSize)) (float(MainWindow.wHeight) - float(plSize));
+        prize = rand |> randomPos 
+            (float(MainWindow.wWidth) - float(plSize)) (float(MainWindow.wHeight) - float(plSize));
         score = 
             { 
                 present = 0; 
-                high = 0;
+                high = highScore;
             };
     }
 
-/// <summary>
-/// Reads from file setting highScore to file input
-/// </summary>
-let start =
-    try
-        let highScore = System.IO.File.ReadLines "snake.txt" |> Seq.head |> int
-        Running ( RunningData { startingBoard with score={ startingBoard.score with high = highScore; } } )
-    with
-        | _ ->
-            Running ( RunningData startingBoard )
-
+let start highScore rand = 
+    Running(RunningData(startingBoard highScore rand))
 
 let nextMove player =
     match player with
@@ -185,12 +178,10 @@ let newHighScore score =
         | false ->
             score.high
 
-let deadSnake newPos board =
+let deadSnake newPos rand board =
     match board |> isDead newPos with
     | true ->
-        { startingBoard 
-            with prize=(randomPos (float(MainWindow.wWidth) - float(plSize)) (float(MainWindow.wHeight) - float(plSize)));
-                 score={ startingBoard.score with high = newHighScore board.score } }
+        rand |> startingBoard (newHighScore board.score)
     | false ->
         let newPlayer = movePlayer board.player
         let newState = { board with player=newPlayer }
@@ -211,7 +202,7 @@ let changeDir newDir state =
     | Quit ->
         Quit
 
-let Update state =
+let Update rand state =
     match state with
     | Paused state ->
         Paused state
@@ -221,11 +212,11 @@ let Update state =
         match board |> acquiredPrize newPos with
         | true ->
             let newPlayer = { board.player with head=newPos; body=(add newPos board.player.body) }
-            let newPrize = randomPos ( float(MainWindow.wWidth) - float(plSize) ) ( float(MainWindow.wHeight) - float(plSize) )
+            let newPrize = rand |> randomPos ( float(MainWindow.wWidth) - float(plSize) ) ( float(MainWindow.wHeight) - float(plSize) )
             let newState = { board with player=newPlayer; prize=newPrize; score = { board.score with present=board.score.present+1 }; }
             Running ( RunningData newState )
         | false ->
-            let newState = board |> deadSnake newPos
+            let newState = board |> (rand |> deadSnake newPos)
             Running ( RunningData newState )
     | Quit ->
         Quit
