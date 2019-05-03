@@ -69,6 +69,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="MainWindow.fs" />
+    <Compile Include="GameTypes.fs" />
     <Compile Include="Game.fs" />
     <Compile Include="Events.fs" />
     <Compile Include="Main.fs" />

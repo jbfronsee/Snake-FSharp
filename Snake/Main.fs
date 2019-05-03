@@ -1,48 +1,54 @@
-﻿module Snake.Main
+﻿namespace Snake
 
-open Gtk
-open MainWindow
+    module Main =
 
-let rand = System.Random().NextDouble
+        open Gtk
+        open Snake.GameTypes
+        open Snake.MainWindow
 
-let readHighScore() =
-    try
-        let highScore = System.IO.File.ReadLines "snake.txt" |> Seq.head |> int
-        Some(highScore)
-    with _ ->
-        None 
+        let rand = System.Random().NextDouble
 
-let rec run state =
-    match Application.EventsPending() with
-    | true ->
-        do Application.RunIteration()
-        state |> run
-    | false ->
-        do System.Threading.Thread.Sleep(50) |> ignore
+        let readHighScore() =
+            try
+                let highScore = System.IO.File.ReadLines "snake.txt" |> Seq.head |> int
+                Some(highScore)
+            with _ ->
+                None 
 
-        let input = Events.readInput()
-        let newState = 
-            ( state |> Events.ProcessInput input ) |> Game.Update rand
-        match newState with
-        | Game.Paused _ | Game.Running _ ->
-            do newState |> Events.draw |> ignore
-            newState |> run
-        | Game.Quit -> 
-            // Exit
-            ()
+        let rec run state =
+            match Application.EventsPending() with
+            | true ->
+                do Application.RunIteration()
+                state |> run
+            | false ->
+                do System.Threading.Thread.Sleep(50) |> ignore
 
-[<EntryPoint>]
-let main(args) = 
-    let high = 
-        match readHighScore() with
-        | Some x ->
-            x
-        | None ->
+                let input = Events.readInput()
+                let inputState = state |> Events.ProcessInput input           
+
+                let maybeRand = rand() |> Random.create
+                let newState = inputState |> Game.Update maybeRand
+
+                match newState with
+                | Paused _ | Running _ ->
+                    do newState |> Events.draw |> ignore
+                    newState |> run
+                | Quit -> 
+                    // Exit
+                    ()
+
+        [<EntryPoint>]
+        let main(args) = 
+            let high = 
+                match readHighScore() with
+                | Some x ->
+                    x
+                | None ->
+                    0
+
+            Application.Init()
+
+            MainWindow.GameWindow.Canvas.QueueDraw()
+            MainWindow.GameWindow.Show();
+            rand() |> Random.create |> Game.start { width=MainWindow.wWidth; height=MainWindow.wHeight } high |> run
             0
-
-    Application.Init()
-
-    GameWindow.Canvas.QueueDraw()
-    GameWindow.Show();
-    rand |> Game.start high |> run
-    0
