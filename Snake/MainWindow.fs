@@ -1,33 +1,35 @@
-﻿module Snake.MainWindow 
+﻿namespace Snake
 
-open System
-open Gtk;
+    module MainWindow =
 
-let wWidth = 800
-let wHeight = 800
+        open System
+        open Gtk;
 
-type SnakeWindow() as this =
-    inherit Window("Snake")
+        let wWidth = 800
+        let wHeight = 800
 
-    let myEventBox = new EventBox()
-    let myCanvas = new DrawingArea()
-    do myEventBox.CanFocus <- true
-    do myEventBox.Add(myCanvas)
-    do this.Add(myEventBox)
+        type SnakeWindow() as this =
+            inherit Window("Snake")
 
-    do this.SetDefaultSize(wWidth,wHeight)
-    // TODO: Possibly remove this
-    do this.Modal <- true
-    do this.ShowAll()
+            let myEventBox = new EventBox()
+            let myCanvas = new DrawingArea()
+            do myEventBox.CanFocus <- true
+            do myEventBox.Add(myCanvas)
+            do this.Add(myEventBox)
 
-    do this.DeleteEvent.Add(fun args ->
-            Application.Quit()
-            Environment.Exit 0
-            args.RetVal <- false
-        )
+            do this.SetDefaultSize(wWidth,wHeight)
+            // TODO: Possibly remove this
+            do this.Modal <- true
+            do this.ShowAll()
 
-    member this.Canvas = myCanvas
-    member this.EventBox = myEventBox
+            do this.DeleteEvent.Add(fun args ->
+                    Application.Quit()
+                    Environment.Exit 0
+                    args.RetVal <- false
+                )
 
-let GameWindow = new SnakeWindow()
+            member this.Canvas = myCanvas
+            member this.EventBox = myEventBox
+
+        let GameWindow = new SnakeWindow()
 
