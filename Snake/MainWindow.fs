@@ -18,8 +18,6 @@
             do this.Add(myEventBox)
 
             do this.SetDefaultSize(wWidth,wHeight)
-            // TODO: Possibly remove this
-            do this.Modal <- true
             do this.ShowAll()
 
             do this.DeleteEvent.Add(fun args ->
@@ -27,7 +25,7 @@
                     Environment.Exit 0
                     args.RetVal <- false
                 )
-
+                
             member this.Canvas = myCanvas
             member this.EventBox = myEventBox
 

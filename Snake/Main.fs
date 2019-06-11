@@ -4,14 +4,13 @@
 
         open Gtk
         open Snake.GameTypes
-        open Snake.MainWindow
 
         let rand = System.Random().NextDouble
 
-        let readHighScore() =
+        let readHighScore =
             try
                 let highScore = System.IO.File.ReadLines "snake.txt" |> Seq.head |> int
-                Some(highScore)
+                Some highScore
             with _ ->
                 None 
 
@@ -23,11 +22,13 @@
             | false ->
                 do System.Threading.Thread.Sleep(50) |> ignore
 
-                let input = Events.readInput()
-                let inputState = state |> Events.ProcessInput input           
+                let boundState = state |> Game.newBounds (Events.readWinSize())
 
-                let maybeRand = rand() |> Random.create
-                let newState = inputState |> Game.Update maybeRand
+                let input = Events.readInput()
+                let inputState = boundState |> Events.ProcessInput input
+
+                let randTuple = (rand() |> Random.create, rand() |> Random.create)
+                let newState = inputState |> Game.Update randTuple
 
                 match newState with
                 | Paused _ | Running _ ->
@@ -38,17 +39,22 @@
                     ()
 
         [<EntryPoint>]
-        let main(args) = 
-            let high = 
-                match readHighScore() with
-                | Some x ->
-                    x
-                | None ->
-                    0
+        let main(args) =
+            try 
+                let high = 
+                    match readHighScore with
+                    | Some x ->
+                        x
+                    | None ->
+                        0
 
-            Application.Init()
+                Application.Init()
 
-            MainWindow.GameWindow.Canvas.QueueDraw()
-            MainWindow.GameWindow.Show();
-            rand() |> Random.create |> Game.start { width=MainWindow.wWidth; height=MainWindow.wHeight } high |> run
-            0
+                MainWindow.GameWindow.Canvas.QueueDraw()
+                MainWindow.GameWindow.Show();
+                let randTuple = (rand() |> Random.create, rand() |> Random.create)
+                randTuple |> Game.start { width=MainWindow.wWidth; height=MainWindow.wHeight } high |> run
+                0
+            with e -> 
+                do Log.write [e.Message]
+                0
