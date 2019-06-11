@@ -6,8 +6,7 @@
 
         module Random =
             let create n =
-                //TODO consider if it should be gte or gt
-                match n <= 1.0 && n >= 0.0 with
+                match n < 1.0 && n >= 0.0 with
                 | true ->
                     Some (Random n)
                 | false ->

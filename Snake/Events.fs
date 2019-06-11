@@ -38,12 +38,18 @@
         let readInput() = 
             match input with
             | Pressed key ->
-                do printfn "%A" key
                 input <- Released
                 Pressed(key)
             | Released ->
                 Released
 
+        let readWinSize() =
+            let mutable w = MainWindow.wWidth
+            let mutable h = MainWindow.wHeight
+
+            GameWindow.GetSize(&w, &h)
+            { width=w; height=h }
+        
         let ProcessInput keyPress state =
             let saveHighScore (board : Board) =
                 do IO.File.WriteAllLines("snake.txt", [ (Game.newHighScore board.score).ToString() ] |> List.toSeq)
@@ -79,17 +85,12 @@
 
         let onDraw (state:Board) (args:Gtk.ExposeEventArgs) = 
             use context = Gdk.CairoHelper.Create(args.Event.Window)
-            do context.SetSourceColor(Cairo.Color(1.0, 0.0, 0.0))
+            do context.SetSourceRGB(1.0, 0.0, 0.0)
             do context.Save()
-            do context.MoveTo(600.0,750.0)
+            do context.MoveTo(0.75 * float state.bounds.width, 0.95 * float state.bounds.height)
             do context.SetFontSize(20.0)
             do context.ShowText("Score: " + state.score.present.ToString() + " High: " + state.score.high.ToString())
             do context.Restore()
-
-            do context.Rectangle(0.0, 0.0, float(MainWindow.wWidth), float(MainWindow.wHeight))
-            do context.LineWidth <- 5.0
-
-            do context.Stroke()
 
             do state.player.body |> Body.iter (fun pos -> 
                 context.Rectangle(float(pos.x), float(pos.y), float(Game.plSize), float(Game.plSize)))

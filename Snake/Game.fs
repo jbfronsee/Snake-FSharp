@@ -8,17 +8,22 @@
         /// Converts a random number into a position.
         /// </summary>
         let randomPos xHigh yHigh rand =
-            let randomPos' mult =
+            let randomPos' multx multy =
                 {
-                    x = int(mult * xHigh);
-                    y = int(mult * yHigh);
+                    x = int(multx * xHigh);
+                    y = int(multy * yHigh);
                 }
 
-            match rand with
-            | Some r ->
-                (Random.value r) |> randomPos'
-            | None ->
-                0.5 |> randomPos'
+            let getVal r coord =
+                match r with
+                | Some value ->
+                    Random.value value
+                | None ->
+                    do Log.write [sprintf "Random value is None using default position for %A co-ordinate." coord]
+                    0.5
+
+            let (r1, r2) = rand
+            randomPos' <| getVal r1 "X" <| getVal r2 "Y"
 
         let plSize = 20
 
@@ -136,6 +141,17 @@
             | Quit ->
                 Quit
 
+        let newBounds b state =
+            match state with
+            | Running state ->
+                let board = RunningData.value state
+                Running <| RunningData.create { board with bounds=b }
+            | Paused state ->
+                let board = PausedData.value state
+                Paused <| PausedData.create { board with bounds=b }
+            | Quit ->
+                state
+        
         let Update rand state =
             match state with
             | Paused state ->
